@@ -1,9 +1,10 @@
+
 name: Animal Story Automation
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "30 3 * * *"
 
 jobs:
   test:
@@ -11,5 +12,61 @@ jobs:
     steps:
       - name: Check automation
         run: |
-          echo "Animal story automation is running!"
+          echo "Animal Story Automation is running!"
           date -u
+
+      - name: Generate AI story
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import urllib.request
+
+          api_key = os.environ["GEMINI_API_KEY"]
+          url = (
+              "https://generativelanguage.googleapis.com/"
+              "v1beta/models/gemini-2.5-flash:generateContent"
+              "?key=" + api_key
+          )
+
+          prompt = (
+              "Write one original, family-friendly 35-second "
+              "English 3D animal story for a YouTube Short. "
+              "Return a title, narration of 65-85 words, "
+              "four scene descriptions, and a moral. "
+              "Avoid copyrighted characters."
+          )
+
+          data = {
+              "contents": [
+                  {"parts": [{"text": prompt}]}
+              ]
+          }
+
+          request = urllib.request.Request(
+              url,
+              data=json.dumps(data).encode(),
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+
+          with urllib.request.urlopen(request, timeout=60) as response:
+              result = json.loads(response.read().decode())
+
+          story = result["candidates"][0]["content"]["parts"][0]["text"]
+
+          os.makedirs("output", exist_ok=True)
+          with open("output/story.txt", "w", encoding="utf-8") as file:
+              file.write(story)
+
+          print(story)
+          PY
+
+      - name: Save generated story
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-animal-story
+          path: output/story.txt
+

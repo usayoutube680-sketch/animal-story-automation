@@ -1,0 +1,15 @@
+name: Animal Story Automation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check automation
+        run: |
+          echo "Animal story automation is running!"
+          date -u
